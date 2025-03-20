@@ -31,6 +31,7 @@ genai.configure(api_key=GOOGLE_API_KEY)
 #     base_url="http://10.1.1.101:11434"
 # )
 
+
 # Supabase credentials
 url = "https://ccvunrogqlehekklflgf.supabase.co"  # Replace with your Supabase URL
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjdnVucm9ncWxlaGVra2xmbGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjcyNjA4ODcsImV4cCI6MjA0MjgzNjg4N30.GpUpsn2yYueFz7_9X8csteS7ug971Z0odYDbwgV2Q1M"  # Replace with your Supabase public API key
@@ -153,17 +154,17 @@ Experience: what type of experience is required , focusing on industrial roles  
 
     {{
         "job_description": {{
-	        “responsibility”:””,
+            “responsibility”:””,
             "skills": "",
             "experience": "",
             "qualifications": ",
             "keywords": "",
-	        “culture fit”:””,
+            “culture fit”:””,
             "jd_data": {{
                 "job_title": "",
                 "responsibilities": "",
                 "required_skills": "",
-	            “total_experience”:””,
+                “total_experience”:””,
                 "preferred_qualifications": "",
                 "company_details": "",
                 "industry_details": "",
@@ -180,25 +181,28 @@ Experience: what type of experience is required , focusing on industrial roles  
 # Function to process resume or job description text with LLM
 def process_text_with_llm(query):
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(query)
-
-        response = response.text
-
-        match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
-        if match:
-            json_str = match.group(1).strip()
-        else:
-            json_str = response.strip()
-
+        messages = [
+        ("system", "Respond only with valid JSON. No additional explanations."),
+        ("human", f"{query}")
+    ]
+        response = llm.invoke(messages)
+   
+        # Extract only the JSON content
         try:
-            return json.loads(json_str)
-        except json.JSONDecodeError as e:
-            print("Error parsing JSON:", e)
-            return None
+            # Attempt to extract JSON from the response
+            json_start = response.content.find('{')
+            json_end = response.content.rfind('}') + 1
+            json_data = json.loads(response.content[json_start:json_end])
+        except json.JSONDecodeError:
+            print(f"Failed to parse JSON for file. Full response: {response.content}")
+            json_data = None
+    
+        return json_data
 
-    except Exception as e: # This line was incorrectly indented
-        print(f"Unexpected error occurred: {str(e)}") # This line was incorrectly indented
+        
+    except Exception as e:
+        print(f"Unexpected error occurred: {str(e)}")
+
 
 @app.route('/upload/<category>', methods=['POST'])
 def upload_files(category):
@@ -474,36 +478,25 @@ Here is the job_description text:
             
             # Call the LLM to process the query and handle the response
             try:
-                messages = [
-                ("system", "Respond only with valid JSON. No additional explanations."),
-                ("human", f"{query}")
-            ]
-                response = llm.invoke(messages)
+                model = genai.GenerativeModel("gemini-2.0-flash")
+                response = model.generate_content(query)
 
-                # Get the generated text from the response
-                b = response.content
-                print("Raw output from LLM:", b)  # Debug print
+                response = response.text
 
-                # Use regex to extract JSON from the raw response
-                match = re.search(r'\{.*\}', b, re.DOTALL)
+                match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
                 if match:
-                    json_str = match.group(0)
-                    print(f"Extracted JSON string: {json_str}")  # Debug print
-
-                    # Attempt to parse the JSON string
-                    try:
-                        json_data = json.loads(json_str)
-                        print("Valid JSON extracted:", json_data)  # Debug print
-                    except json.JSONDecodeError as e:
-                        print(f"JSON decode error: {str(e)}. Raw JSON string: {json_str}")
-                        continue  # Skip this resume if the JSON is invalid
+                    json_str = match.group(1).strip()
                 else:
-                    print("No valid JSON found in the response.")
-                    continue
+                    json_str = response.strip()
+                    json_data=json_str
+                try:
+                    return json.loads(json_data)
+                except json.JSONDecodeError as e:
+                    print("Error parsing JSON:", e)
+                    return None
 
-            except Exception as e:
-                print(f"Unexpected error occurred during LLM processing: {str(e)}")
-                continue
+            except Exception as e: # This line was incorrectly indented
+                print(f"Unexpected error occurred: {str(e)}") # This line was incorrectly indented
 
             # Save the valid result in the 'matching' folder
             if json_data:
@@ -531,5 +524,3 @@ Here is the job_description text:
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
