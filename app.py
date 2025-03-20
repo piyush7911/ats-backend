@@ -481,7 +481,8 @@ Here is the job_description text:
                 response = model.generate_content(query)
 
                 response = response.text
-                
+                print("hello")
+                print(response)
                 match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
                 if match:
                     json_str = match.group(1).strip()
