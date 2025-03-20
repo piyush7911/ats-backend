@@ -181,23 +181,22 @@ Experience: what type of experience is required , focusing on industrial roles  
 # Function to process resume or job description text with LLM
 def process_text_with_llm(query):
     try:
-        messages = [
-        ("system", "Respond only with valid JSON. No additional explanations."),
-        ("human", f"{query}")
-    ]
-        response = llm.invoke(messages)
-   
-        # Extract only the JSON content
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(query)
+
+        response = response.text
+
+        match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
+        if match:
+            json_str = match.group(1).strip()
+        else:
+            json_str = response.strip()
+
         try:
-            # Attempt to extract JSON from the response
-            json_start = response.content.find('{')
-            json_end = response.content.rfind('}') + 1
-            json_data = json.loads(response.content[json_start:json_end])
-        except json.JSONDecodeError:
-            print(f"Failed to parse JSON for file. Full response: {response.content}")
-            json_data = None
-    
-        return json_data
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            print("Error parsing JSON:", e)
+            return None
 
         
     except Exception as e:
