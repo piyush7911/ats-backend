@@ -522,5 +522,6 @@ Here is the job_description text:
         return jsonify({'error': 'Error calculating matching scores'}), 500
 
 
+
 if __name__ == "__main__":
     app.run(debug=True)
