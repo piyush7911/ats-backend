@@ -481,13 +481,13 @@ Here is the job_description text:
                 response = model.generate_content(query)
 
                 response = response.text
-
+                
                 match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
                 if match:
                     json_str = match.group(1).strip()
                 else:
                     json_str = response.strip()
-                    json_data=json_str
+                json_data=json_str
                 try:
                     return json.loads(json_data)
                 except json.JSONDecodeError as e:
