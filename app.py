@@ -5,8 +5,8 @@ import json
 import re
 from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
-from langchain_ollama import ChatOllama
-
+#from langchain_ollama import ChatOllama
+import google.generativeai as genai
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -21,11 +21,15 @@ ALLOWED_EXTENSIONS = {'pdf'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULTS_FOLDER'] = RESULTS_FOLDER
 
+#gemini api
+GOOGLE_API_KEY = "AIzaSyAbBHbu3pQru4LY8sa-J7oPUBmrL7GBvko"
+genai.configure(api_key=GOOGLE_API_KEY)
+
 # Configure LLM
-llm = ChatOllama(
-    model="llama3.1:8b",
-    base_url="http://10.1.1.101:11434"
-)
+# llm = ChatOllama(
+#     model="llama3.1:8b",
+#     base_url="http://10.1.1.101:11434"
+# )
 
 # Supabase credentials
 url = "https://ccvunrogqlehekklflgf.supabase.co"  # Replace with your Supabase URL
@@ -175,12 +179,13 @@ Experience: what type of experience is required , focusing on industrial roles  
 
 # Function to process resume or job description text with LLM
 def process_text_with_llm(query):
-    try:
-        messages = [
-        ("system", "Respond only with valid JSON. No additional explanations."),
-        ("human", f"{query}")
-    ]
-        response = llm.invoke(messages)
+     try:
+        response = genai.generate_text(
+            model="gemini-2.0-flash",
+            prompt=query
+        )
+ 
+        response = response.text
    
         # Extract only the JSON content
         try:
