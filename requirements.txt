@@ -5,3 +5,4 @@ langchain-ollama
 supabase
 werkzeug
 Gunicorn
+google-generativeai
